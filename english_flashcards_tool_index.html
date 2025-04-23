@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Flashcards Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .dark-mode {
+      background-color: #1e1e1e;
+      color: #f9f9f9;
+    }
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 500px;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .dark-mode .card {
+      background: #333;
+    }
+    button {
+      margin: 0.4rem;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .dark-mode button {
+      background-color: #444;
+      color: #eee;
+    }
+    .dark-mode button:hover {
+      background-color: #666;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 600px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="flashcard">
+    <h2 id="english">Loading...</h2>
+    <p id="hindi"></p>
+  </div>
+  <div class="controls">
+    <button onclick="prevSentence()">Previous</button>
+    <button onclick="nextSentence()">Next</button>
+    <button onclick="toggleAutoplay()" id="autoplayBtn">Start Auto</button>
+    <button onclick="speakSentence()">Speak</button>
+    <button onclick="copySentence()">Copy</button>
+    <button onclick="downloadSentences()">Download</button>
+    <button onclick="toggleDarkMode()">Dark Mode</button>
+    <button onclick="toggleFullScreen()">Full Screen</button>
+  </div>
+
+  <script>
+    const sentences = [];
+
+    fetch("https://raw.githubusercontent.com/NKd-ui/English-sentences/main/english-sentences.json")
+      .then(res => res.json())
+      .then(data => {
+        sentences.push(...data);
+        displaySentence(current);
+      });
+
+    let current = 0;
+    let autoplay = null;
+
+    function displaySentence(index) {
+      if (!sentences.length) return;
+      document.getElementById('english').textContent = sentences[index].en;
+      document.getElementById('hindi').textContent = sentences[index].hi;
+      speakBothLanguages();
+    }
+
+    function nextSentence() {
+      current = (current + 1) % sentences.length;
+      displaySentence(current);
+    }
+
+    function prevSentence() {
+      current = (current - 1 + sentences.length) % sentences.length;
+      displaySentence(current);
+    }
+
+    function toggleAutoplay() {
+      const btn = document.getElementById('autoplayBtn');
+      if (autoplay) {
+        clearInterval(autoplay);
+        autoplay = null;
+        btn.textContent = "Start Auto";
+      } else {
+        autoplay = setInterval(() => {
+          nextSentence();
+          speakBothLanguages();
+        }, 20000);
+        btn.textContent = "Stop Auto";
+      }
+    }
+
+    function speakSentence() {
+      if (!sentences.length) return;
+      const msg = new SpeechSynthesisUtterance(sentences[current].en);
+      window.speechSynthesis.speak(msg);
+    }
+
+    function speakBothLanguages() {
+      if (!sentences.length) return;
+      const eng = new SpeechSynthesisUtterance(sentences[current].en);
+      const hin = new SpeechSynthesisUtterance(sentences[current].hi);
+      hin.lang = 'hi-IN';
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(eng);
+      setTimeout(() => window.speechSynthesis.speak(hin), eng.text.length * 60);
+    }
+
+    function copySentence() {
+      if (!sentences.length) return;
+      const text = `${sentences[current].en} - ${sentences[current].hi}`;
+      navigator.clipboard.writeText(text);
+      alert("Copied to clipboard!");
+    }
+
+    function downloadSentences() {
+      const content = sentences.map(s => `${s.en} - ${s.hi}`).join('\n');
+      const blob = new Blob([content], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'sentences.txt';
+      link.click();
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+  </script>
+</body>
+</html>
